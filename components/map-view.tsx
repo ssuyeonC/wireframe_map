@@ -323,12 +323,20 @@ export function MapView({ activeFilter = "all", spotSubFilter = null, spotSub2Fi
       <div className="absolute inset-0">
         {!isLoaded ? (
           <div className="w-full h-full grid place-items-center text-sm text-muted-foreground">Google Maps를 불러오는 중...</div>
-        ) : loadError || !process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
+        ) : !process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
           <div className="w-full h-full grid place-items-center p-6 text-center text-sm text-muted-foreground">
             <div>
               <div className="mb-2 font-medium text-foreground">API Key가 필요합니다.</div>
-              <div className="mb-1">환경변수 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY를 설정해 주세요.</div>
-              <div className="opacity-70">예: .env.local에 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=YOUR_KEY</div>
+              <div className="mb-1">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY가 빌드 시점에 주입되지 않았습니다.</div>
+              <div className="opacity-70">GitHub Actions Secrets/Variables에 키를 추가했는지 확인해 주세요.</div>
+            </div>
+          </div>
+        ) : loadError ? (
+          <div className="w-full h-full grid place-items-center p-6 text-center text-sm text-muted-foreground">
+            <div>
+              <div className="mb-2 font-medium text-foreground">지도를 불러오지 못했습니다.</div>
+              <div className="mb-1">Maps JavaScript API 활성화 및 HTTP referrer 제한 도메인을 확인해 주세요.</div>
+              <div className="opacity-70">예: https://{typeof window !== 'undefined' ? window.location.host : 'your-domain' }/*</div>
             </div>
           </div>
         ) : (
