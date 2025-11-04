@@ -258,11 +258,11 @@ export default function ForumPage() {
         {highlightPosts.length > 0 && (
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-3 text-gray-800">🌟 하이라이트 게시물</h3>
-            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="flex gap-5 overflow-x-auto pb-2 scrollbar-hide">
               {highlightPosts.map((post) => (
                 <Card
                   key={`highlight-${post.id}`}
-                  className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-yellow-400 flex-shrink-0 w-80"
+                  className="group rounded-xl border border-gray-200 bg-white hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-yellow-400 flex-shrink-0 w-[360px]"
                 >
                   <CardContent className="px-5 py-4 md:px-6">
                     <div className="space-y-3">
@@ -273,11 +273,11 @@ export default function ForumPage() {
                       <div className="flex items-center justify-between text-sm text-gray-500">
                         <div className="flex items-center gap-3">
                           <div className="flex items-center gap-1">
-                            <Heart className="h-4 w-4" />
+                            <Heart className="h-4 w-4 text-gray-400" />
                             <span>{post.likes}</span>
                           </div>
                           <div className="flex items-center gap-1">
-                            <MessageCircle className="h-4 w-4" />
+                            <MessageCircle className="h-4 w-4 text-gray-400" />
                             <span>{post.comments}</span>
                           </div>
                         </div>
@@ -315,7 +315,7 @@ export default function ForumPage() {
             </Card>
           ) : (
             filteredAndSortedPosts.map((post, index) => (
-              <Card key={post.id} className="hover:shadow-md transition-shadow cursor-pointer">
+              <Card key={post.id} className="group rounded-xl border border-gray-200 bg-white hover:shadow-md transition-shadow cursor-pointer">
                 <CardContent className="px-5 py-4 md:px-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -330,11 +330,11 @@ export default function ForumPage() {
                     </div>
                     <div className="flex items-center gap-4 text-sm text-gray-500">
                       <div className="flex items-center gap-1">
-                        <Heart className="h-4 w-4" />
+                        <Heart className="h-4 w-4 text-gray-400" />
                         <span>{post.likes}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <MessageCircle className="h-4 w-4" />
+                        <MessageCircle className="h-4 w-4 text-gray-400" />
                         <span>{post.comments}</span>
                       </div>
                       {index === 0 && (
@@ -346,7 +346,7 @@ export default function ForumPage() {
                             }}
                             className="p-1 hover:bg-gray-100 rounded"
                           >
-                            <MoreVertical className="h-4 w-4" />
+                            <MoreVertical className="h-4 w-4 text-gray-400" />
                           </button>
                           {openMenuId === post.id && (
                             <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-[120px]">
