@@ -11,8 +11,13 @@ export default function IndexPage() {
         >
           지도 와이어프레임
         </Link>
+        <Link
+          href="/community"
+          className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-primary-foreground hover:opacity-90 transition"
+        >
+          커뮤니티 와이어프레임
+        </Link>
       </div>
     </main>
   )
 }
-
