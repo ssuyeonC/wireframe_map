@@ -264,7 +264,7 @@ export default function ForumPage() {
                   key={`highlight-${post.id}`}
                   className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-yellow-400 flex-shrink-0 w-80"
                 >
-                  <CardContent className="p-4">
+                  <CardContent className="px-5 py-4 md:px-6">
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
                         <Badge className={getCategoryBadgeColor(post.category)}>{post.category}</Badge>
@@ -316,7 +316,7 @@ export default function ForumPage() {
           ) : (
             filteredAndSortedPosts.map((post, index) => (
               <Card key={post.id} className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardContent className="p-4">
+                <CardContent className="px-5 py-4 md:px-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
