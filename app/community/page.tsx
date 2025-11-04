@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect, useMemo, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
@@ -106,6 +106,8 @@ const categoryDescriptions: Record<Category, string> = {
 
 export default function ForumPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const pathname = usePathname()
   const [activeCategory, setActiveCategory] = useState<Category>("ALL")
   const [searchQuery, setSearchQuery] = useState("")
   const [actualSearchQuery, setActualSearchQuery] = useState("")
@@ -289,6 +291,44 @@ export default function ForumPage() {
                 </Card>
               ))}
             </div>
+            {(() => {
+              type ExtraFilterId = "hanbokA" | "hanbokB" | "studio"
+              const extraFilters: { id: ExtraFilterId; label: string }[] = [
+                { id: "hanbokA", label: "한복A(3)" },
+                { id: "hanbokB", label: "한복B(2)" },
+                { id: "studio", label: "사진관(1)" },
+              ]
+
+              const selected = new Set(searchParams.getAll("filters"))
+
+              const toggle = (id: ExtraFilterId) => {
+                const next = new Set(selected)
+                if (next.has(id)) next.delete(id)
+                else next.add(id)
+
+                const params = new URLSearchParams(searchParams.toString())
+                params.delete("filters")
+                Array.from(next).forEach((v) => params.append("filters", v))
+                const qs = params.toString()
+                router.push(`${pathname}${qs ? `?${qs}` : ""}`)
+              }
+
+              return (
+                <div className="mt-4 flex gap-2">
+                  {extraFilters.map((f) => (
+                    <Button
+                      key={f.id}
+                      variant={selected.has(f.id) ? "default" : "outline"}
+                      onClick={() => toggle(f.id)}
+                      className={selected.has(f.id) ? "bg-gray-800 text-white" : ""}
+                      size="sm"
+                    >
+                      {f.label}
+                    </Button>
+                  ))}
+                </div>
+              )
+            })()}
           </div>
         )}
 
