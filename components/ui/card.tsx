@@ -41,7 +41,7 @@ CardDescription.displayName = "CardDescription"
 export interface CardContentProps extends React.HTMLAttributes<HTMLDivElement> {}
 export const CardContent = React.forwardRef<HTMLDivElement, CardContentProps>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={clsx("p-6 pt-0", className)} {...props} />
+    <div ref={ref} className={clsx("p-6", className)} {...props} />
   )
 )
 CardContent.displayName = "CardContent"
@@ -55,4 +55,3 @@ export const CardFooter = React.forwardRef<HTMLDivElement, CardFooterProps>(
 CardFooter.displayName = "CardFooter"
 
 export default Card
-
