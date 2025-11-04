@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect, useMemo, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
@@ -104,6 +105,7 @@ const categoryDescriptions: Record<Category, string> = {
 }
 
 export default function ForumPage() {
+  const router = useRouter()
   const [activeCategory, setActiveCategory] = useState<Category>("ALL")
   const [searchQuery, setSearchQuery] = useState("")
   const [actualSearchQuery, setActualSearchQuery] = useState("")
@@ -246,7 +248,7 @@ export default function ForumPage() {
               </Button>
             ))}
           </div>
-          <Button className="bg-teal-500 hover:bg-teal-600 text-white px-6">WRITE</Button>
+          <Button className="bg-teal-500 hover:bg-teal-600 text-white px-6" onClick={() => router.push("/community/write")}>WRITE</Button>
         </div>
 
         {categoryDescriptions[activeCategory] && (
