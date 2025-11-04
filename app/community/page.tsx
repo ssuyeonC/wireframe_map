@@ -295,7 +295,7 @@ export default function ForumPage() {
             총 <span className="font-medium text-gray-900">{filteredAndSortedPosts.length}</span>개의 게시물
           </div>
           <Select value={sortOption} onValueChange={(value: SortOption) => setSortOption(value)}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-28">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
