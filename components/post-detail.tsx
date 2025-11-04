@@ -9,13 +9,27 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Heart, MessageCircle, Share2, MoreHorizontal, ChevronLeft, Pencil, Trash2 } from "lucide-react"
 import { TravelItinerary } from "@/components/travel-itinerary"
 
-interface PostDetailProps {
-  onBack: () => void
+type PostData = {
+  title: string
+  author: string
+  date: string
+  category: string
+  isAnonymous?: boolean
+  likes?: number
+  content: string[]
 }
 
-export function PostDetail({ onBack }: PostDetailProps) {
+type PostComment = { id: number; author: string; content: string; time: string; likes: number }
+
+interface PostDetailProps {
+  onBack: () => void
+  post?: PostData
+  comments?: PostComment[]
+}
+
+export function PostDetail({ onBack, post, comments: commentsProp }: PostDetailProps) {
   const [isLiked, setIsLiked] = useState(false)
-  const [likeCount, setLikeCount] = useState(7)
+  const [likeCount, setLikeCount] = useState(post?.likes ?? 7)
   const [comment, setComment] = useState("")
 
   const handleLike = () => {
@@ -23,7 +37,7 @@ export function PostDetail({ onBack }: PostDetailProps) {
     setLikeCount((prev) => (isLiked ? prev - 1 : prev + 1))
   }
 
-  const comments = [
+  const comments = commentsProp ?? [
     {
       id: 1,
       author: "TravelLover",
@@ -60,16 +74,14 @@ export function PostDetail({ onBack }: PostDetailProps) {
               </Avatar>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-900">Guest User</span>
-                  <Badge variant="secondary" className="text-xs bg-gray-100">
-                    Anonymous
-                  </Badge>
+                  <span className="font-medium text-gray-900">{post?.author ?? "Guest User"}</span>
+                  <Badge variant="secondary" className="text-xs bg-gray-100">{post?.isAnonymous ? "Anonymous" : "Member"}</Badge>
                 </div>
-                <p className="text-sm text-gray-500">2025.01.09</p>
+                <p className="text-sm text-gray-500">{post?.date ?? "2025.01.09"}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100">My Travel Plan</Badge>
+              <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100">{post?.category ?? "My Travel Plan"}</Badge>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="p-1 hover:bg-gray-100">
@@ -90,18 +102,15 @@ export function PostDetail({ onBack }: PostDetailProps) {
             </div>
           </div>
 
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Perfect 4-Day Seoul Beauty & Culture Trip Itinerary</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">{post?.title ?? "Perfect 4-Day Seoul Beauty & Culture Trip Itinerary"}</h2>
 
           <div className="text-gray-700 mb-6 leading-relaxed">
-            <p className="mb-4">
-              Just finished an amazing 4-day trip to Seoul focusing on beauty experiences and cultural sites! Sharing my
-              detailed itinerary for anyone planning a similar trip. Each day was perfectly balanced between beauty
-              treatments, photo sessions, and sightseeing.
-            </p>
-            <p className="mb-4">
-              The photo studios in Hongdae were absolutely incredible - highly recommend booking in advance! The beauty
-              treatments were also top-notch. Feel free to ask any questions about specific places.
-            </p>
+            {(post?.content ?? [
+              "Just finished an amazing 4-day trip to Seoul focusing on beauty experiences and cultural sites! Sharing my detailed itinerary for anyone planning a similar trip.",
+              "The photo studios in Hongdae were absolutely incredible - highly recommend booking in advance! Feel free to ask any questions about specific places.",
+            ]).map((p, i) => (
+              <p key={i} className="mb-4">{p}</p>
+            ))}
           </div>
 
           <div className="mb-6">
@@ -190,4 +199,3 @@ export function PostDetail({ onBack }: PostDetailProps) {
 }
 
 export default PostDetail
-

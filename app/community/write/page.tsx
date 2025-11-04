@@ -17,7 +17,8 @@ export default function CommunityWritePage() {
   const [hasItinerary, setHasItinerary] = useState(false)
 
   const handleSubmit = () => {
-    router.push("/community/post")
+    // 임시로 새 글 ID를 999로 이동
+    router.push("/community/post/999")
   }
 
   return (
@@ -89,4 +90,3 @@ export default function CommunityWritePage() {
     </main>
   )
 }
-

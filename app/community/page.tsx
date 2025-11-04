@@ -267,6 +267,7 @@ export default function ForumPage() {
                 <Card
                   key={`highlight-${post.id}`}
                   className="group rounded-xl border border-gray-200 bg-white hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-yellow-400 flex-shrink-0 w-[360px]"
+                  onClick={() => router.push(`/community/post/${post.id}`)}
                 >
                   <CardContent className="!p-6">
                     <div className="space-y-3">
@@ -357,7 +358,11 @@ export default function ForumPage() {
             </Card>
           ) : (
             filteredAndSortedPosts.map((post, index) => (
-              <Card key={post.id} className="group rounded-xl border border-gray-200 bg-white hover:shadow-md transition-shadow cursor-pointer">
+              <Card
+                key={post.id}
+                className="group rounded-xl border border-gray-200 bg-white hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => router.push(`/community/post/${post.id}`)}
+              >
                 <CardContent className="!p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
