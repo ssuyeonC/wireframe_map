@@ -295,9 +295,9 @@ export default function ForumPage() {
             {(() => {
               type ExtraFilterId = "hanbokA" | "hanbokB" | "studio"
               const extraFilters: { id: ExtraFilterId; label: string }[] = [
-                { id: "hanbokA", label: "한복A(3)" },
+                { id: "hanbokA", label: "한복A(5)" },
                 { id: "hanbokB", label: "한복B(2)" },
-                { id: "studio", label: "사진관(1)" },
+                { id: "studio", label: "사진관A(1)" },
               ]
 
               const selected = new Set(searchParams.getAll("filters"))
