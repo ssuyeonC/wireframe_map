@@ -6,7 +6,8 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Heart, MessageCircle, Share2, MoreHorizontal, ChevronLeft, Pencil, Trash2 } from "lucide-react"
+import { Heart, MessageCircle, Share2, MoreHorizontal, ChevronLeft, Pencil, Trash2, Star, ChevronRight } from "lucide-react"
+import type { ConnectedProduct } from "@/lib/community-products"
 import { TravelItinerary } from "@/components/travel-itinerary"
 
 type PostData = {
@@ -25,9 +26,10 @@ interface PostDetailProps {
   onBack: () => void
   post?: PostData
   comments?: PostComment[]
+  relatedProducts?: ConnectedProduct[]
 }
 
-export function PostDetail({ onBack, post, comments: commentsProp }: PostDetailProps) {
+export function PostDetail({ onBack, post, comments: commentsProp, relatedProducts }: PostDetailProps) {
   const [isLiked, setIsLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(post?.likes ?? 7)
   const [comment, setComment] = useState("")
@@ -116,6 +118,47 @@ export function PostDetail({ onBack, post, comments: commentsProp }: PostDetailP
           <div className="mb-6">
             <TravelItinerary />
           </div>
+
+          {relatedProducts && relatedProducts.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-3 text-gray-800">이 글과 관련있는 상품</h3>
+              <div className="space-y-3">
+                {relatedProducts.map((p) => (
+                  <div key={p.id} className="rounded-xl border border-gray-200 p-4">
+                    <div className="flex items-start gap-4">
+                      <img
+                        src={p.imageUrl || "https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=640&auto=format&fit=crop"}
+                        alt={p.title}
+                        className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs text-gray-500">{p.location}</div>
+                        <div className="font-semibold text-gray-900 line-clamp-2">{p.title || p.label}</div>
+                        {p.priceUSD !== undefined && (
+                          <div className="mt-1 font-semibold text-gray-900">{p.priceUSD.toFixed(2)} USD</div>
+                        )}
+                      </div>
+                      <button aria-label="wishlist" className="text-pink-300">
+                        <Heart className="w-5 h-5" />
+                      </button>
+                    </div>
+                    <div className="mt-3 bg-gray-50 border rounded-md p-3 text-sm text-gray-600 flex items-start gap-2">
+                      <Star className="w-4 h-4 text-teal-500 mt-0.5" />
+                      <div className="line-clamp-2">
+                        <span className="font-medium text-gray-800 mr-1">{p.rating?.toFixed(1) ?? "4.0"}</span>
+                        {p.reviewSnippet ?? "Customers found this place cozy with great service and photos."}
+                      </div>
+                    </div>
+                    <div className="mt-2">
+                      <a href={p.href || "/map"} className="inline-flex items-center gap-1 text-sm text-gray-600 underline">
+                        MORE <ChevronRight className="w-4 h-4" />
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center justify-between pt-4 border-t">
             <div className="flex items-center gap-6">

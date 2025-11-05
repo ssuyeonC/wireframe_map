@@ -10,6 +10,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, Heart, MessageCircle, MoreVertical } from "lucide-react"
+import { EXTRA_FILTER_TO_POST_IDS } from "@/lib/community-products"
+import type { ExtraFilterId } from "@/lib/community-products"
 
 type Category = "ALL" | "QUESTION" | "TALK" | "MY TRAVEL PLAN"
 type SortOption = "latest" | "popular" | "comments"
@@ -25,15 +27,7 @@ interface Post {
   isHighlight?: boolean
 }
 
-// Extra filter ids used in the UI and URL params
-type ExtraFilterId = "hanbokA" | "hanbokB" | "studio"
-
-// Mapping from extra filters to mock post IDs
-const EXTRA_FILTER_TO_POST_IDS: Record<ExtraFilterId, number[]> = {
-  hanbokA: [1, 2, 3, 4, 5],
-  hanbokB: [2, 3],
-  studio: [1],
-}
+// Extra filter ids and mapping now live in lib/community-products.ts
 
 const mockPosts: Post[] = [
   {
@@ -317,7 +311,6 @@ export default function ForumPage() {
               ))}
             </div>
             {(() => {
-              type ExtraFilterId = "hanbokA" | "hanbokB" | "studio"
               const extraFilters: { id: ExtraFilterId; label: string }[] = [
                 { id: "hanbokA", label: "한복A(5)" },
                 { id: "hanbokB", label: "한복B(2)" },

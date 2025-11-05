@@ -1,5 +1,6 @@
 import { useMemo } from "react"
 import PostDetailClient from "./post-detail-client"
+import { getRelatedProductsForPostId } from "@/lib/community-products"
 
 export default function CommunityPostDetailPage({ params }: { params: { id: string } }) {
   const { id } = params
@@ -37,7 +38,9 @@ export default function CommunityPostDetailPage({ params }: { params: { id: stri
     return { post, comments }
   }, [id])
 
-  return <PostDetailClient post={post as any} comments={comments as any} />
+  const relatedProducts = getRelatedProductsForPostId(Number(id))
+
+  return <PostDetailClient post={post as any} comments={comments as any} relatedProducts={relatedProducts} />
 }
 
 export function generateStaticParams() {
