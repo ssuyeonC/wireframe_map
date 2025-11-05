@@ -122,14 +122,14 @@ export function PostDetail({ onBack, post, comments: commentsProp, relatedProduc
           {relatedProducts && relatedProducts.length > 0 && (
             <div className="mt-6">
               <h3 className="text-lg font-semibold mb-3 text-gray-800">이 글과 관련있는 상품</h3>
-              <div className="space-y-3">
+              <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
                 {relatedProducts.map((p) => (
-                  <div key={p.id} className="rounded-xl border border-gray-200 p-4">
+                  <div key={p.id} className="rounded-xl border border-gray-200 p-4 flex-shrink-0 w-[360px]">
                     <div className="flex items-start gap-4">
                       <img
                         src={p.imageUrl || "https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=640&auto=format&fit=crop"}
                         alt={p.title}
-                        className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
+                        className="w-24 h-24 rounded-lg object-cover flex-shrink-0"
                       />
                       <div className="flex-1 min-w-0">
                         <div className="text-xs text-gray-500">{p.location}</div>
