@@ -25,6 +25,16 @@ interface Post {
   isHighlight?: boolean
 }
 
+// Extra filter ids used in the UI and URL params
+type ExtraFilterId = "hanbokA" | "hanbokB" | "studio"
+
+// Mapping from extra filters to mock post IDs
+const EXTRA_FILTER_TO_POST_IDS: Record<ExtraFilterId, number[]> = {
+  hanbokA: [1, 2, 3, 4, 5],
+  hanbokB: [2, 3],
+  studio: [1],
+}
+
 const mockPosts: Post[] = [
   {
     id: 1,
@@ -154,10 +164,24 @@ export default function ForumPage() {
   }
 
   const filteredAndSortedPosts = useMemo(() => {
+    // Build selected extra filters from URL params
+    const selectedFilters = new Set(searchParams.getAll("filters")) as Set<ExtraFilterId | string>
+
+    // If any extra filters are selected, compute allowed post ids (union)
+    const allowedIds: Set<number> | null = selectedFilters.size
+      ? Array.from(selectedFilters).reduce((acc, f) => {
+          if (f in EXTRA_FILTER_TO_POST_IDS) {
+            for (const id of EXTRA_FILTER_TO_POST_IDS[f as ExtraFilterId]) acc.add(id)
+          }
+          return acc
+        }, new Set<number>())
+      : null
+
     const filtered = mockPosts.filter((post) => {
       const categoryMatch = activeCategory === "ALL" || post.category === activeCategory
       const searchMatch = actualSearchQuery === "" || post.title.toLowerCase().includes(actualSearchQuery.toLowerCase())
-      return categoryMatch && searchMatch
+      const extraFilterMatch = allowedIds ? allowedIds.has(post.id) : true
+      return categoryMatch && searchMatch && extraFilterMatch
     })
 
     filtered.sort((a, b) => {
@@ -173,7 +197,7 @@ export default function ForumPage() {
     })
 
     return filtered
-  }, [activeCategory, actualSearchQuery, sortOption])
+  }, [activeCategory, actualSearchQuery, sortOption, searchParams])
 
   const highlightPosts = useMemo(() => {
     const categoryPosts =
