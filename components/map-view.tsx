@@ -137,7 +137,8 @@ export function MapView({ activeFilter = "all", spotSubFilter = null, spotSub2Fi
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
   })
   const [zoom, setZoom] = useState(13)
-  const [center, setCenter] = useState<google.maps.LatLngLiteral>({ lat: 37.5665, lng: 126.978 })
+  // 검색 기준이 되는 원의 중심 좌표 (지도 이동과는 별개로 유지)
+  const [searchCenter, setSearchCenter] = useState<google.maps.LatLngLiteral>({ lat: 37.5665, lng: 126.978 })
   const [pois, setPois] = useState<Poi[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [detailId, setDetailId] = useState<string | null>(null)
@@ -180,8 +181,12 @@ export function MapView({ activeFilter = "all", spotSubFilter = null, spotSub2Fi
     const map = mapRef.current
     if (!map) return
     const b = map.getBounds()
-    if (!b) return
-    setPois(generatePoisInBounds(b, map.getZoom() ?? zoom))
+    const c = map.getCenter()
+    if (!b || !c) return
+    const newCenter = { lat: c.lat(), lng: c.lng() }
+    setSearchCenter(newCenter)
+    const effectiveZoom = map.getZoom() ?? zoom
+    setPois(generatePoisInBounds(b, effectiveZoom))
     setSelectedId(null)
     setDetailId(null)
   }, [zoom])
@@ -249,10 +254,9 @@ export function MapView({ activeFilter = "all", spotSubFilter = null, spotSub2Fi
     const map = mapRef.current
     if (!map) return setVisibleFiltered([])
     const bounds = map.getBounds()
-    const c = map.getCenter()
-    if (!bounds || !c) return setVisibleFiltered([])
-    const centerLat = c.lat()
-    const centerLng = c.lng()
+    if (!bounds) return setVisibleFiltered([])
+    const centerLat = searchCenter.lat
+    const centerLng = searchCenter.lng
     setVisibleFiltered(
       filtered.filter((p) => {
         if (!bounds.contains({ lat: p.lat, lng: p.lng })) return false
@@ -260,48 +264,39 @@ export function MapView({ activeFilter = "all", spotSubFilter = null, spotSub2Fi
         return d <= SEARCH_RADIUS_M
       })
     )
-  }, [filtered])
+  }, [filtered, searchCenter])
 
   const onMapLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map
   }, [])
-  const lastRef = useRef<{ lat: number; lng: number; zoom: number }>({ lat: center.lat, lng: center.lng, zoom })
-  const EPS = 1e-5
+
+  // 최초 한 번만 자동으로 POI를 생성하기 위한 플래그
+  const initializedRef = useRef(false)
 
   const onMapIdle = useCallback(() => {
     const map = mapRef.current
     if (!map) return
-    const c = map.getCenter()
     const z = map.getZoom()
-    let changed = false
-    if (typeof z === "number" && z !== lastRef.current.zoom) {
-      setZoom(z)
-      lastRef.current.zoom = z
-      changed = true
-    }
-    if (c) {
-      const lat = c.lat()
-      const lng = c.lng()
-      if (Math.abs(lat - lastRef.current.lat) > EPS || Math.abs(lng - lastRef.current.lng) > EPS) {
-        setCenter({ lat, lng })
-        lastRef.current.lat = lat
-        lastRef.current.lng = lng
-        changed = true
-      }
-    }
+    if (typeof z === "number") setZoom(z)
     const b = map.getBounds()
-    if (b) {
-      // Only regenerate if view actually changed or on first load
-      if (changed || pois.length === 0) {
-        const effectiveZoom = typeof z === "number" ? z : lastRef.current.zoom
-        setPois(generatePoisInBounds(b, effectiveZoom))
-        setSelectedId(null)
-        setDetailId(null)
+    if (!b) return
+
+    // 첫 로드 시에만 현재 뷰 기준으로 POI 생성 + 원 중심을 지도 중앙으로 설정
+    if (!initializedRef.current && pois.length === 0) {
+      initializedRef.current = true
+      const c = map.getCenter()
+      if (c) {
+        setSearchCenter({ lat: c.lat(), lng: c.lng() })
       }
-      // Always update visible list to reflect current filter
-      updateVisible()
+      const effectiveZoom = typeof z === "number" ? z : zoom
+      setPois(generatePoisInBounds(b, effectiveZoom))
+      setSelectedId(null)
+      setDetailId(null)
     }
-  }, [pois.length, updateVisible])
+
+    // 항상 현재 뷰와 검색 반경 기준으로 visibleFiltered 갱신
+    updateVisible()
+  }, [pois.length, updateVisible, zoom])
 
   // Recompute visible cards when filter changes without moving the map
   useEffect(() => {
@@ -383,7 +378,7 @@ export function MapView({ activeFilter = "all", spotSubFilter = null, spotSub2Fi
         ) : (
           <GoogleMap onLoad={onMapLoad} onIdle={onMapIdle} mapContainerStyle={{ width: "100%", height: "100%" }} options={mapOptions}>
             <Circle
-              center={center}
+              center={searchCenter}
               radius={SEARCH_RADIUS_M}
               options={{
                 fillColor: "#22c55e", // 눈에 잘 띄는 연두색
