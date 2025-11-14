@@ -42,7 +42,8 @@ const TYPE_ICON: Record<PoiType, any> = {
 }
 
 // 검색 반경 (미터 단위)
-const SEARCH_RADIUS_M = 800
+// 레퍼런스처럼 화면을 넓게 덮도록 약 1.5km로 설정
+const SEARCH_RADIUS_M = 1500
 
 function toRad(deg: number) {
   return (deg * Math.PI) / 180
@@ -385,12 +386,13 @@ export function MapView({ activeFilter = "all", spotSubFilter = null, spotSub2Fi
               center={center}
               radius={SEARCH_RADIUS_M}
               options={{
-                fillColor: "#0f766e",
-                fillOpacity: 0.15,
-                strokeColor: "#0f766e",
-                strokeOpacity: 0.7,
-                strokeWeight: 1,
+                fillColor: "#22c55e", // 눈에 잘 띄는 연두색
+                fillOpacity: 0.25,
+                strokeColor: "#16a34a",
+                strokeOpacity: 1,
+                strokeWeight: 2,
                 clickable: false,
+                zIndex: 1,
               }}
             />
             {visibleFiltered.map((poi) => {
