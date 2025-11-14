@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { GoogleMap, OverlayView, useJsApiLoader } from "@react-google-maps/api"
+import { GoogleMap, OverlayView, useJsApiLoader, Circle } from "@react-google-maps/api"
 import { MapPin, Home, Building2, ShoppingBag, Store, ShoppingCart, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -39,6 +39,24 @@ const TYPE_ICON: Record<PoiType, any> = {
   oliveyoung: ShoppingBag,
   daiso: Store,
   lottemart: ShoppingCart,
+}
+
+// 검색 반경 (미터 단위)
+const SEARCH_RADIUS_M = 800
+
+function toRad(deg: number) {
+  return (deg * Math.PI) / 180
+}
+
+function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const R = 6371000
+  const dLat = toRad(lat2 - lat1)
+  const dLng = toRad(lng2 - lng1)
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return R * c
 }
 
 function titleFor(type: PoiType, i: number): string {
@@ -224,14 +242,23 @@ export function MapView({ activeFilter = "all", spotSubFilter = null, spotSub2Fi
 
   const detailPoi = useMemo(() => filtered.find((p) => p.id === detailId) ?? null, [filtered, detailId])
 
-  // Visible items based on map bounds
+  // Visible items based on map bounds + 원 반경
   const [visibleFiltered, setVisibleFiltered] = useState<Poi[]>([])
   const updateVisible = useCallback(() => {
     const map = mapRef.current
     if (!map) return setVisibleFiltered([])
     const bounds = map.getBounds()
-    if (!bounds) return setVisibleFiltered([])
-    setVisibleFiltered(filtered.filter((p) => bounds.contains({ lat: p.lat, lng: p.lng })))
+    const c = map.getCenter()
+    if (!bounds || !c) return setVisibleFiltered([])
+    const centerLat = c.lat()
+    const centerLng = c.lng()
+    setVisibleFiltered(
+      filtered.filter((p) => {
+        if (!bounds.contains({ lat: p.lat, lng: p.lng })) return false
+        const d = distanceMeters(p.lat, p.lng, centerLat, centerLng)
+        return d <= SEARCH_RADIUS_M
+      })
+    )
   }, [filtered])
 
   const onMapLoad = useCallback((map: google.maps.Map) => {
@@ -279,6 +306,19 @@ export function MapView({ activeFilter = "all", spotSubFilter = null, spotSub2Fi
   useEffect(() => {
     updateVisible()
   }, [filtered, updateVisible])
+
+  // 선택된/상세 POI가 원 밖으로 나가면 해제
+  useEffect(() => {
+    if (selectedId && !visibleFiltered.some((p) => p.id === selectedId)) {
+      setSelectedId(null)
+    }
+  }, [selectedId, visibleFiltered])
+
+  useEffect(() => {
+    if (detailId && !visibleFiltered.some((p) => p.id === detailId)) {
+      setDetailId(null)
+    }
+  }, [detailId, visibleFiltered])
 
   // Mobile: track centered card on horizontal scroll and sync to map center
   const updateMobileFocus = useCallback(() => {
@@ -341,7 +381,19 @@ export function MapView({ activeFilter = "all", spotSubFilter = null, spotSub2Fi
           </div>
         ) : (
           <GoogleMap onLoad={onMapLoad} onIdle={onMapIdle} mapContainerStyle={{ width: "100%", height: "100%" }} options={mapOptions}>
-            {filtered.map((poi) => {
+            <Circle
+              center={center}
+              radius={SEARCH_RADIUS_M}
+              options={{
+                fillColor: "#0f766e",
+                fillOpacity: 0.15,
+                strokeColor: "#0f766e",
+                strokeOpacity: 0.7,
+                strokeWeight: 1,
+                clickable: false,
+              }}
+            />
+            {visibleFiltered.map((poi) => {
               const Icon = TYPE_ICON[poi.type]
               const selected = selectedId === poi.id
               return (
