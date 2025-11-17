@@ -221,7 +221,8 @@ export function MapView({
       setSelectedId(id)
       const poi = getPoiById(id)
       const map = mapRef.current
-      if (poi && map) map.panTo({ lat: poi.lat, lng: poi.lng })
+      // 모바일 환경에서는 카드/바텀시트 노출 시 지도의 위치를 유지하기 위해 중심 이동을 하지 않는다.
+      if (!isMobile && poi && map) map.panTo({ lat: poi.lat, lng: poi.lng })
 
       requestAnimationFrame(() => {
         if (isMobile) {
