@@ -533,6 +533,20 @@ export function MapView({ activeFilter = "all", spotSubFilter = null, spotSub2Fi
                 <CardHeader className="p-3">
                   <CardTitle className="text-sm font-semibold truncate">{poi.name}</CardTitle>
                 </CardHeader>
+                {(poi.type === "spot" || poi.type === "stay" || poi.type === "place") && (
+                  <CardContent className="px-3 pb-3 pt-0">
+                    <button
+                      className="text-primary hover:underline text-sm font-medium"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (detailEligible.has(poi.type)) setDetailId(poi.id)
+                        else handleSelect(poi.id)
+                      }}
+                    >
+                      자세히 보기
+                    </button>
+                  </CardContent>
+                )}
               </Card>
             </div>
           ))}
