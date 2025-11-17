@@ -258,6 +258,14 @@ export function MapView({
 
   const detailPoi = useMemo(() => filtered.find((p) => p.id === detailId) ?? null, [filtered, detailId])
 
+  const selectedForCard = useMemo(() => {
+    if (!selectedId) return null
+    const poi = filtered.find((p) => p.id === selectedId) ?? null
+    if (!poi) return null
+    if (detailEligible.has(poi.type)) return null
+    return poi
+  }, [filtered, selectedId])
+
   // Visible items based on map bounds + 원 반경
   const [visibleFiltered, setVisibleFiltered] = useState<Poi[]>([])
   const updateVisible = useCallback(() => {
@@ -427,7 +435,13 @@ export function MapView({
                 <OverlayView key={poi.id} position={{ lat: poi.lat, lng: poi.lng }} mapPaneName="overlayMouseTarget">
                   <div
                     className={`-translate-x-1/2 -translate-y-1/2 cursor-pointer transform-gpu ${selected ? "scale-110" : "scale-100"}`}
-                    onClick={() => handleSelect(poi.id)}
+                    onClick={() => {
+                      if (isMobile && detailEligible.has(poi.type)) {
+                        openDetail(poi)
+                      } else {
+                        handleSelect(poi.id)
+                      }
+                    }}
                   >
                     <div
                       className={`flex items-center justify-center rounded-full text-white shadow transition-all duration-150 ${
@@ -533,53 +547,33 @@ export function MapView({
         )}
       </aside>
 
-      {/* Mobile horizontal list */}
-      <div className="md:hidden absolute left-0 right-0 bottom-0 z-20">
-        <div
-          ref={mobileListRef}
-          onScroll={() => requestAnimationFrame(updateMobileFocus)}
-          className="overflow-x-auto whitespace-nowrap px-3 py-3 flex gap-3 snap-x snap-mandatory bg-gradient-to-t from-background/95 to-background/60 backdrop-blur"
-        >
-          {visibleFiltered.map((poi) => (
-            <div
-              key={`mcard-${poi.id}`}
-              ref={setMobileCardRef(poi.id)}
-              data-poi-id={poi.id}
-              className={`flex-shrink-0 w-72 snap-center ${selectedId === poi.id ? "ring-2 ring-primary rounded-lg" : ""}`}
-            >
-              <Card
-                className="overflow-hidden cursor-pointer"
-                onClick={() => {
-                  if (mobileFocusedId === poi.id) {
-                    if (detailEligible.has(poi.type)) setDetailId(poi.id)
-                  } else {
-                    handleSelect(poi.id)
-                  }
-                }}
-              >
-                <div className="aspect-[16/9] w-full bg-muted overflow-hidden">
-                  <img src={poi.image} alt={poi.name} className="h-full w-full object-cover" />
-                </div>
-                <CardHeader className="p-3">
-                  <CardTitle className="text-sm font-semibold truncate">{poi.name}</CardTitle>
-                </CardHeader>
-                <CardContent className="px-3 pb-3 pt-0">
-                  <button
-                    className="text-primary hover:underline text-sm font-medium"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      if (detailEligible.has(poi.type)) openDetail(poi)
-                      else handleSelect(poi.id)
-                    }}
-                  >
-                    자세히 보기
-                  </button>
-                </CardContent>
-              </Card>
+      {/* Mobile single selected card (spot/stay/place) */}
+      {isMobile && selectedForCard && !detailPoi && (
+        <div className="md:hidden fixed left-0 right-0 bottom-0 z-20">
+          <div className="mx-auto w-full max-w-md rounded-t-2xl border bg-card shadow-lg">
+            <div className="p-3 space-y-3">
+              <div className="aspect-[16/9] w-full bg-muted overflow-hidden rounded-lg">
+                <img src={selectedForCard.image} alt={selectedForCard.name} className="h-full w-full object-cover" />
+              </div>
+              <div className="px-1 pb-1">
+                <div className="text-base font-semibold truncate">{selectedForCard.name}</div>
+                {(selectedForCard.type === "spot" || selectedForCard.type === "stay") && (
+                  <div className="mt-1 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <Star className="h-4 w-4 text-amber-500" />
+                      <span className="text-foreground/90">{selectedForCard.rating?.toFixed(1)}</span>
+                      <span className="text-muted-foreground">({selectedForCard.reviews})</span>
+                    </div>
+                    <div className="text-sm font-semibold">
+                      ₩{new Intl.NumberFormat("ko-KR").format(selectedForCard.price ?? 0)}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Mobile bottom sheet detail for eligible types */}
       {isMobile && detailPoi && (
