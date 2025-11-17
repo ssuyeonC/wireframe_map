@@ -131,7 +131,17 @@ function generatePoisInBounds(bounds: google.maps.LatLngBounds, zoom: number): P
   return pois
 }
 
-export function MapView({ activeFilter = "all", spotSubFilter = null, spotSub2Filter = null }: { activeFilter?: CategoryId; spotSubFilter?: SpotSubId | null; spotSub2Filter?: SpotSub2Id | null }) {
+export function MapView({
+  activeFilter = "all",
+  spotSubFilter = null,
+  spotSub2Filter = null,
+  onVisibleTypesChange,
+}: {
+  activeFilter?: CategoryId
+  spotSubFilter?: SpotSubId | null
+  spotSub2Filter?: SpotSub2Id | null
+  onVisibleTypesChange?: (types: CategoryId[]) => void
+}) {
   const { isLoaded, loadError } = useJsApiLoader({
     id: "gmap-script",
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
@@ -252,19 +262,39 @@ export function MapView({ activeFilter = "all", spotSubFilter = null, spotSub2Fi
   const [visibleFiltered, setVisibleFiltered] = useState<Poi[]>([])
   const updateVisible = useCallback(() => {
     const map = mapRef.current
-    if (!map) return setVisibleFiltered([])
+    if (!map) {
+      setVisibleFiltered([])
+      if (onVisibleTypesChange) onVisibleTypesChange([])
+      return
+    }
     const bounds = map.getBounds()
-    if (!bounds) return setVisibleFiltered([])
+    if (!bounds) {
+      setVisibleFiltered([])
+      if (onVisibleTypesChange) onVisibleTypesChange([])
+      return
+    }
     const centerLat = searchCenter.lat
     const centerLng = searchCenter.lng
-    setVisibleFiltered(
-      filtered.filter((p) => {
+    const nextVisibleFiltered = filtered.filter((p) => {
+      if (!bounds.contains({ lat: p.lat, lng: p.lng })) return false
+      const d = distanceMeters(p.lat, p.lng, centerLat, centerLng)
+      return d <= SEARCH_RADIUS_M
+    })
+    setVisibleFiltered(nextVisibleFiltered)
+
+    if (onVisibleTypesChange) {
+      const visibleAllTypes = pois.filter((p) => {
         if (!bounds.contains({ lat: p.lat, lng: p.lng })) return false
         const d = distanceMeters(p.lat, p.lng, centerLat, centerLng)
         return d <= SEARCH_RADIUS_M
       })
-    )
-  }, [filtered, searchCenter])
+      const typeSet = new Set<CategoryId>()
+      visibleAllTypes.forEach((p) => {
+        typeSet.add(p.type)
+      })
+      onVisibleTypesChange(Array.from(typeSet))
+    }
+  }, [filtered, pois, searchCenter, onVisibleTypesChange])
 
   const onMapLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map
@@ -533,20 +563,18 @@ export function MapView({ activeFilter = "all", spotSubFilter = null, spotSub2Fi
                 <CardHeader className="p-3">
                   <CardTitle className="text-sm font-semibold truncate">{poi.name}</CardTitle>
                 </CardHeader>
-                {(poi.type === "spot" || poi.type === "stay" || poi.type === "place") && (
-                  <CardContent className="px-3 pb-3 pt-0">
-                    <button
-                      className="text-primary hover:underline text-sm font-medium"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        if (detailEligible.has(poi.type)) setDetailId(poi.id)
-                        else handleSelect(poi.id)
-                      }}
-                    >
-                      자세히 보기
-                    </button>
-                  </CardContent>
-                )}
+                <CardContent className="px-3 pb-3 pt-0">
+                  <button
+                    className="text-primary hover:underline text-sm font-medium"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (detailEligible.has(poi.type)) openDetail(poi)
+                      else handleSelect(poi.id)
+                    }}
+                  >
+                    자세히 보기
+                  </button>
+                </CardContent>
               </Card>
             </div>
           ))}

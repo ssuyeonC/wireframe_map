@@ -16,24 +16,35 @@ const ORDERED_CATEGORIES: CategoryId[] = [
 export function CategoryFilters({
   selected,
   onChange,
+  availableCategories,
 }: {
   selected: CategoryId
   onChange: (id: CategoryId) => void
+  availableCategories?: CategoryId[]
 }) {
+  const hasAvailabilityInfo = availableCategories !== undefined
+  const availableSet = new Set<CategoryId>(availableCategories ?? [])
+
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center space-x-1 overflow-x-auto">
-        {ORDERED_CATEGORIES.map((id) => (
-          <Button
-            key={id}
-            variant={selected === id ? "default" : "ghost"}
-            size="sm"
-            className="whitespace-nowrap"
-            onClick={() => onChange(id)}
-          >
-            {CATEGORY_LABELS[id]}
-          </Button>
-        ))}
+        {ORDERED_CATEGORIES.map((id) => {
+          const isDisabled = hasAvailabilityInfo && id !== "all" && !availableSet.has(id)
+          return (
+            <Button
+              key={id}
+              variant={selected === id ? "default" : "ghost"}
+              size="sm"
+              className="whitespace-nowrap"
+              disabled={isDisabled}
+              onClick={() => {
+                if (!isDisabled) onChange(id)
+              }}
+            >
+              {CATEGORY_LABELS[id]}
+            </Button>
+          )
+        })}
       </div>
 
       <div className="flex items-center ml-4">

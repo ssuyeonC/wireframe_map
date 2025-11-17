@@ -12,6 +12,7 @@ export default function TravelActivitiesPage() {
   const [selected, setSelected] = useState<CategoryId>("all")
   const [spotSub, setSpotSub] = useState<SpotSubId | null>(null)
   const [spotSub2, setSpotSub2] = useState<SpotSub2Id | null>(null)
+  const [availableCategories, setAvailableCategories] = useState<CategoryId[] | undefined>(undefined)
 
   useEffect(() => {
     if (selected !== "spot" && spotSub !== null) setSpotSub(null)
@@ -33,7 +34,11 @@ export default function TravelActivitiesPage() {
 
       <main className="container mx-auto px-4 py-6">
         <div className="mb-3">
-          <CategoryFilters selected={selected} onChange={(id) => setSelected(id)} />
+          <CategoryFilters
+            selected={selected}
+            onChange={(id) => setSelected(id)}
+            availableCategories={availableCategories}
+          />
         </div>
 
         <div className="mb-3">
@@ -45,7 +50,12 @@ export default function TravelActivitiesPage() {
         </div>
 
         <div className="h-[calc(100vh-200px)]">
-          <MapView activeFilter={selected} spotSubFilter={spotSub} spotSub2Filter={spotSub2} />
+          <MapView
+            activeFilter={selected}
+            spotSubFilter={spotSub}
+            spotSub2Filter={spotSub2}
+            onVisibleTypesChange={(types) => setAvailableCategories(types)}
+          />
         </div>
       </main>
     </div>
