@@ -213,6 +213,8 @@ export function MapView({
   const setMobileCardRef = useCallback((id: string) => (el: HTMLDivElement | null) => {
     mobileCardRefs.current[id] = el
   }, [])
+  const mobileOverlayRef = useRef<HTMLDivElement | null>(null)
+  const lastMobileOverlayKeyRef = useRef<string | null>(null)
 
   const getPoiById = useCallback((id: string) => filtered.find((p) => p.id === id), [filtered])
 
@@ -353,6 +355,28 @@ export function MapView({
       setDetailId(null)
     }
   }, [detailId, visibleFiltered])
+
+  // Mobile: when a bottom overlay (card or sheet) is shown, pan map up
+  // so the selected POI appears centered in the remaining visible map area.
+  useEffect(() => {
+    if (!isMobile) return
+
+    const map = mapRef.current
+    const overlayEl = mobileOverlayRef.current
+    const poi = detailPoi ?? selectedForCard
+
+    if (!map || !overlayEl || !poi) return
+
+    const key = `${poi.id}-${detailPoi ? "detail" : "card"}`
+    if (lastMobileOverlayKeyRef.current === key) return
+    lastMobileOverlayKeyRef.current = key
+
+    const h = overlayEl.getBoundingClientRect().height
+    if (!h) return
+
+    // Move map content up by half of the overlay height
+    map.panBy(0, -h / 2)
+  }, [isMobile, detailPoi, selectedForCard])
 
   // Mobile: track centered card on horizontal scroll and sync to map center
   const updateMobileFocus = useCallback(() => {
@@ -549,7 +573,7 @@ export function MapView({
 
       {/* Mobile single selected card (spot/stay/place) */}
       {isMobile && selectedForCard && !detailPoi && (
-        <div className="md:hidden fixed left-0 right-0 bottom-0 z-20">
+        <div ref={mobileOverlayRef} className="md:hidden fixed left-0 right-0 bottom-0 z-20">
           <div className="mx-auto w-full max-w-md rounded-t-2xl border bg-card shadow-lg">
             <div className="p-3 space-y-3">
               <div className="aspect-[16/9] w-full bg-muted overflow-hidden rounded-lg">
@@ -577,7 +601,7 @@ export function MapView({
 
       {/* Mobile bottom sheet detail for eligible types */}
       {isMobile && detailPoi && (
-        <div className="md:hidden fixed left-0 right-0 bottom-0 z-30">
+        <div ref={mobileOverlayRef} className="md:hidden fixed left-0 right-0 bottom-0 z-30">
           <div className="mx-auto w-full max-w-md rounded-t-2xl border bg-card shadow-lg">
             <div className="w-10 h-1.5 bg-muted-foreground/40 rounded-full mx-auto mt-2" />
             <div className="p-3 space-y-3">
