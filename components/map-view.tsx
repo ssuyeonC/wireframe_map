@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { GoogleMap, OverlayView, useJsApiLoader, Circle } from "@react-google-maps/api"
+import { GoogleMap, OverlayView, Polygon, useJsApiLoader } from "@react-google-maps/api"
 import { MapPin, Home, Building2, ShoppingBag, Store, ShoppingCart, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -154,6 +154,8 @@ export function MapView({
   const [detailId, setDetailId] = useState<string | null>(null)
   const [mobileFocusedId, setMobileFocusedId] = useState<string | null>(null)
   const [isRegionView, setIsRegionView] = useState(false)
+  const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null)
+  const [sidebarMode, setSidebarMode] = useState<"region" | "product">("product")
 
   // responsive: detect mobile (<= md)
   const [isMobile, setIsMobile] = useState(false)
@@ -205,6 +207,7 @@ export function MapView({
   // Sidebar refs (desktop) and mobile list refs
   const sidebarRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
+  const searchCircleRef = useRef<google.maps.Circle | null>(null)
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const setCardRef = useCallback((id: string) => (el: HTMLDivElement | null) => {
     cardRefs.current[id] = el
@@ -308,6 +311,7 @@ export function MapView({
 
   const onMapLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map
+    setMapInstance(map)
   }, [])
 
   // 최초 한 번만 자동으로 POI를 생성하기 위한 플래그
@@ -342,6 +346,40 @@ export function MapView({
   useEffect(() => {
     updateVisible()
   }, [filtered, updateVisible])
+
+  // Maintain a single search radius circle on the map
+  useEffect(() => {
+    if (!mapInstance) return
+
+    if (!searchCircleRef.current) {
+      searchCircleRef.current = new google.maps.Circle({
+        map: mapInstance,
+        center: searchCenter,
+        radius: SEARCH_RADIUS_M,
+        fillColor: "#22c55e",
+        fillOpacity: 0.25,
+        strokeColor: "#16a34a",
+        strokeOpacity: 1,
+        strokeWeight: 2,
+        clickable: false,
+        zIndex: 1,
+      })
+    } else {
+      searchCircleRef.current.setMap(mapInstance)
+      searchCircleRef.current.setCenter(searchCenter)
+      searchCircleRef.current.setRadius(SEARCH_RADIUS_M)
+    }
+  }, [mapInstance, searchCenter])
+
+  // Cleanup circle when component unmounts
+  useEffect(() => {
+    return () => {
+      if (searchCircleRef.current) {
+        searchCircleRef.current.setMap(null)
+        searchCircleRef.current = null
+      }
+    }
+  }, [])
 
   // 선택된/상세 POI가 원 밖으로 나가면 해제
   useEffect(() => {
@@ -394,6 +432,23 @@ export function MapView({
     [initialCenter]
   )
 
+  // 행정구역(지역 뷰) 폴리곤 모양 - 검색 중심 기준으로 간단한 다각형 생성
+  const regionPolygon = useMemo<google.maps.LatLngLiteral[]>(() => {
+    const { lat, lng } = searchCenter
+    const dLat = 0.025
+    const dLng = 0.03
+    return [
+      { lat: lat + dLat, lng: lng - dLng * 0.6 },
+      { lat: lat + dLat * 0.4, lng: lng + dLng },
+      { lat: lat, lng: lng + dLng * 1.2 },
+      { lat: lat - dLat * 0.6, lng: lng + dLng * 0.4 },
+      { lat: lat - dLat, lng: lng - dLng * 0.8 },
+      { lat: lat - dLat * 0.2, lng: lng - dLng * 1.1 },
+    ]
+  }, [searchCenter])
+
+  const effectiveSidebarMode: "region" | "product" = !isRegionView ? "product" : sidebarMode
+
   return (
     <div className="relative bg-map-bg rounded-lg border overflow-hidden h-full">
       <div className="absolute inset-0">
@@ -417,19 +472,20 @@ export function MapView({
           </div>
         ) : (
           <GoogleMap onLoad={onMapLoad} onIdle={onMapIdle} mapContainerStyle={{ width: "100%", height: "100%" }} options={mapOptions}>
-            <Circle
-              center={searchCenter}
-              radius={SEARCH_RADIUS_M}
-              options={{
-                fillColor: "#22c55e", // 눈에 잘 띄는 연두색
-                fillOpacity: 0.25,
-                strokeColor: "#16a34a",
-                strokeOpacity: 1,
-                strokeWeight: 2,
-                clickable: false,
-                zIndex: 1,
-              }}
-            />
+            {isRegionView && (
+              <Polygon
+                paths={regionPolygon}
+                options={{
+                  fillColor: "#fb923c",
+                  fillOpacity: 0.25,
+                  strokeColor: "#f97316",
+                  strokeOpacity: 1,
+                  strokeWeight: 2,
+                  clickable: false,
+                  zIndex: 1,
+                }}
+              />
+            )}
             {visibleFiltered.map((poi) => {
               const Icon = TYPE_ICON[poi.type]
               const selected = selectedId === poi.id
@@ -471,18 +527,25 @@ export function MapView({
         </Button>
       </div>
 
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
-        <Button
-          type="button"
-          variant="ghost"
-          aria-pressed={isRegionView}
-          className={`px-4 py-2 rounded-full border shadow-sm text-xs font-medium ${
-            isRegionView ? "bg-teal-500 text-white border-teal-600" : "bg-white text-black hover:bg-gray-50"
-          }`}
-          onClick={() => setIsRegionView((prev) => !prev)}
-        >
-          지역 뷰 보기
-        </Button>
+      <div className="absolute bottom-4 left-1/2 md:left-[calc(50%+10rem)] transform -translate-x-1/2">
+        <div className="flex items-center gap-2 rounded-full bg-white px-3 py-2 border shadow-sm">
+          <span className="text-xs font-medium text-black">지역 뷰 보기</span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={isRegionView}
+            className={`relative inline-flex h-4 w-7 items-center rounded-full border transition-colors ${
+              isRegionView ? "bg-teal-500 border-teal-600" : "bg-gray-200 border-gray-300"
+            }`}
+            onClick={() => setIsRegionView((prev) => !prev)}
+          >
+            <span
+              className={`inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform ${
+                isRegionView ? "translate-x-3" : "translate-x-0.5"
+              }`}
+            />
+          </button>
+        </div>
       </div>
 
       <div className="absolute bottom-4 right-4 mb-12">
@@ -493,74 +556,121 @@ export function MapView({
       </div>
 
       {/* Sidebar: filtered list (desktop only) */}
-      <aside ref={sidebarRef} className="hidden md:block absolute left-0 top-0 bottom-0 w-80 bg-card/95 backdrop-blur border-r z-20 overflow-y-auto">
-        {detailPoi ? (
-          <div className="p-3 space-y-3">
-            <Card className="overflow-hidden">
-              <div className="aspect-[16/9] w-full bg-muted overflow-hidden">
-                <img src={detailPoi.image} alt={detailPoi.name} className="h-full w-full object-cover" />
-              </div>
-              <CardHeader className="p-4">
-                <CardTitle className="text-lg">{detailPoi.name}</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 pt-0 space-y-3">
-                <Button className="w-full h-11 bg-teal-500 hover:bg-teal-600 text-white" onClick={() => {}}>
-                  앱에서 보기
-                </Button>
-                <Button variant="outline" className="w-full h-10" onClick={closeDetail}>
-                  목록으로
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        ) : (
-          <div className="p-3 space-y-3">
-            {visibleFiltered.map((poi) => (
-              <Card
-                key={`card-${poi.id}`}
-                ref={setCardRef(poi.id)}
-                className={`overflow-hidden transition-shadow cursor-pointer ${selectedId === poi.id ? "ring-2 ring-primary" : "hover:shadow-sm"}`}
-                role="button"
-                tabIndex={0}
-                onClick={() => handleSelect(poi.id)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") handleSelect(poi.id)
-                }}
-              >
-                <div className="aspect-[16/9] w-full bg-muted overflow-hidden">
-                  <img src={poi.image} alt={poi.name} className="h-full w-full object-cover" />
-                </div>
-                <CardHeader className="p-4">
-                  <CardTitle className="text-base">{poi.name}</CardTitle>
-                  {(poi.type === "spot" || poi.type === "stay") && (
-                    <CardDescription className="mt-1">
-                      <div className="flex items-center gap-2 text-xs">
-                        <Star className="h-4 w-4 text-amber-500" />
-                        <span className="text-foreground/90">{poi.rating?.toFixed(1)}</span>
-                        <span className="text-muted-foreground">({poi.reviews})</span>
-                      </div>
-                    </CardDescription>
-                  )}
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  {(poi.type === "spot" || poi.type === "stay") && (
-                    <div className="mb-2 text-sm font-semibold">₩{new Intl.NumberFormat("ko-KR").format(poi.price ?? 0)}</div>
-                  )}
-                  <button
-                    className="hidden md:inline text-primary hover:underline text-sm font-medium"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      if (detailEligible.has(poi.type)) openDetail(poi)
-                      else handleSelect(poi.id)
-                    }}
-                  >
-                    자세히 보기
-                  </button>
-                </CardContent>
-              </Card>
-            ))}
+      <aside className="hidden md:flex absolute left-0 top-0 bottom-0 w-80 bg-card/95 backdrop-blur border-r z-20">
+        {isRegionView && (
+          <div className="flex flex-col w-20 border-r bg-card/95">
+            <button
+              type="button"
+              className={`flex-1 px-2 py-3 text-[11px] font-medium text-left border-l-2 ${
+                effectiveSidebarMode === "region"
+                  ? "border-teal-500 bg-muted text-foreground"
+                  : "border-transparent text-muted-foreground hover:bg-muted/50"
+              }`}
+              onClick={() => setSidebarMode("region")}
+            >
+              지역 정보
+            </button>
+            <button
+              type="button"
+              className={`flex-1 px-2 py-3 text-[11px] font-medium text-left border-l-2 ${
+                effectiveSidebarMode === "product"
+                  ? "border-teal-500 bg-muted text-foreground"
+                  : "border-transparent text-muted-foreground hover:bg-muted/50"
+              }`}
+              onClick={() => setSidebarMode("product")}
+            >
+              상품 정보
+            </button>
           </div>
         )}
+
+        <div ref={sidebarRef} className="flex-1 overflow-y-auto">
+          {effectiveSidebarMode === "region" && isRegionView ? (
+            <div className="p-3 space-y-3">
+              <Card className="overflow-hidden">
+                <CardHeader className="p-4 pb-3">
+                  <CardTitle className="text-base">지역 정보</CardTitle>
+                  <CardDescription className="mt-1 text-xs">
+                    현재 지도에서 보이는 영역 기준 요약 정보입니다.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 space-y-1 text-xs">
+                  <div>현재 지역 내 총 {visibleFiltered.length}개 상품이 있습니다.</div>
+                </CardContent>
+              </Card>
+            </div>
+          ) : detailPoi ? (
+            <div className="p-3 space-y-3">
+              <Card className="overflow-hidden">
+                <div className="aspect-[16/9] w-full bg-muted overflow-hidden">
+                  <img src={detailPoi.image} alt={detailPoi.name} className="h-full w-full object-cover" />
+                </div>
+                <CardHeader className="p-4">
+                  <CardTitle className="text-lg">{detailPoi.name}</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 space-y-3">
+                  <Button className="w-full h-11 bg-teal-500 hover:bg-teal-600 text-white" onClick={() => {}}>
+                    앱에서 보기
+                  </Button>
+                  <Button variant="outline" className="w-full h-10" onClick={closeDetail}>
+                    목록으로
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <div className="p-3 space-y-3">
+              {visibleFiltered.map((poi) => (
+                <Card
+                  key={`card-${poi.id}`}
+                  ref={setCardRef(poi.id)}
+                  className={`overflow-hidden transition-shadow cursor-pointer ${
+                    selectedId === poi.id ? "ring-2 ring-primary" : "hover:shadow-sm"
+                  }`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleSelect(poi.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") handleSelect(poi.id)
+                  }}
+                >
+                  <div className="aspect-[16/9] w-full bg-muted overflow-hidden">
+                    <img src={poi.image} alt={poi.name} className="h-full w-full object-cover" />
+                  </div>
+                  <CardHeader className="p-4">
+                    <CardTitle className="text-base">{poi.name}</CardTitle>
+                    {(poi.type === "spot" || poi.type === "stay") && (
+                      <CardDescription className="mt-1">
+                        <div className="flex items-center gap-2 text-xs">
+                          <Star className="h-4 w-4 text-amber-500" />
+                          <span className="text-foreground/90">{poi.rating?.toFixed(1)}</span>
+                          <span className="text-muted-foreground">({poi.reviews})</span>
+                        </div>
+                      </CardDescription>
+                    )}
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    {(poi.type === "spot" || poi.type === "stay") && (
+                      <div className="mb-2 text-sm font-semibold">
+                        ₩{new Intl.NumberFormat("ko-KR").format(poi.price ?? 0)}
+                      </div>
+                    )}
+                    <button
+                      className="hidden md:inline text-primary hover:underline text-sm font-medium"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (detailEligible.has(poi.type)) openDetail(poi)
+                        else handleSelect(poi.id)
+                      }}
+                    >
+                      자세히 보기
+                    </button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
       </aside>
 
       {/* Mobile single selected card (spot/stay/place) */}
