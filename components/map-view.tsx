@@ -460,7 +460,7 @@ export function MapView({
         )}
       </div>
 
-      <div className="absolute top-4 left-1/2 transform -translate-x-1/2">
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
         <Button
           variant="ghost"
           className="bg-white hover:bg-gray-50 !text-black border shadow-sm font-medium"
