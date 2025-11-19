@@ -153,6 +153,7 @@ export function MapView({
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [detailId, setDetailId] = useState<string | null>(null)
   const [mobileFocusedId, setMobileFocusedId] = useState<string | null>(null)
+  const [isRegionView, setIsRegionView] = useState(false)
 
   // responsive: detect mobile (<= md)
   const [isMobile, setIsMobile] = useState(false)
@@ -460,13 +461,27 @@ export function MapView({
         )}
       </div>
 
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+      <div className="absolute top-4 left-1/2 md:left-[calc(50%+10rem)] transform -translate-x-1/2">
         <Button
           variant="ghost"
           className="bg-white hover:bg-gray-50 !text-black border shadow-sm font-medium"
           onClick={rerandomize}
         >
           현 위치에서 재검색
+        </Button>
+      </div>
+
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+        <Button
+          type="button"
+          variant="ghost"
+          aria-pressed={isRegionView}
+          className={`px-4 py-2 rounded-full border shadow-sm text-xs font-medium ${
+            isRegionView ? "bg-teal-500 text-white border-teal-600" : "bg-white text-black hover:bg-gray-50"
+          }`}
+          onClick={() => setIsRegionView((prev) => !prev)}
+        >
+          지역 뷰 보기
         </Button>
       </div>
 
