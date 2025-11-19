@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { GoogleMap, OverlayView, Polygon, useJsApiLoader } from "@react-google-maps/api"
-import { MapPin, Home, Building2, ShoppingBag, Store, ShoppingCart, Star } from "lucide-react"
+import { MapPin, Home, Building2, ShoppingBag, Store, ShoppingCart, Star, ThumbsUp, Heart, ChevronRight, Train } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import type { CategoryId, SpotSubId, SpotSub2Id } from "@/lib/types"
@@ -586,18 +586,162 @@ export function MapView({
 
         <div ref={sidebarRef} className="flex-1 overflow-y-auto">
           {effectiveSidebarMode === "region" && isRegionView ? (
-            <div className="p-3 space-y-3">
-              <Card className="overflow-hidden">
-                <CardHeader className="p-4 pb-3">
-                  <CardTitle className="text-base">지역 정보</CardTitle>
-                  <CardDescription className="mt-1 text-xs">
-                    현재 지도에서 보이는 영역 기준 요약 정보입니다.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-4 pt-0 space-y-1 text-xs">
-                  <div>현재 지역 내 총 {visibleFiltered.length}개 상품이 있습니다.</div>
-                </CardContent>
-              </Card>
+            <div className="p-3 space-y-4 text-xs">
+              {/* Header */}
+              <div className="space-y-2">
+                <div>
+                  <div className="text-[15px] font-semibold leading-snug">Things To Do in Hongdae</div>
+                  <div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <Star className="h-3.5 w-3.5 text-emerald-500" />
+                    <span className="font-semibold text-foreground">4.9</span>
+                    <span>8,121 Reviews</span>
+                    <span className="ml-1 inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-500">
+                      POPULAR
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between rounded-full border px-3 py-2 text-[11px]">
+                  <span className="truncate text-muted-foreground">I&apos;d love to visit this place too!</span>
+                  <button className="ml-2 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium">
+                    <Heart className="h-3 w-3 text-rose-500" />
+                    <span>3,211</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Regional Description */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-foreground">Regional Description</span>
+                  <button className="text-[10px] font-semibold text-teal-600 flex items-center gap-0.5">
+                    MORE
+                    <ChevronRight className="h-3 w-3" />
+                  </button>
+                </div>
+                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                  Hongdae, the area near Hongik University, is famous among young people for its unique cultural
+                  atmosphere. The neighborhood is packed with popular shops, cafes, restaurants, clubs, and venues for
+                  live busking performances.
+                </p>
+              </div>
+
+              {/* Location blocks */}
+              <div className="space-y-2">
+                <div className="rounded-lg border bg-card">
+                  <div className="flex items-center border-b px-3 py-2">
+                    <MapPin className="mr-2 h-3.5 w-3.5 text-emerald-500" />
+                    <span className="text-[11px] font-semibold">Location</span>
+                  </div>
+                  <div className="px-3 py-2 text-[11px] text-muted-foreground">
+                    Yanghwa-ro, Mapo-gu, Seoul
+                  </div>
+                </div>
+
+                <div className="rounded-lg border bg-card">
+                  <div className="flex items-center border-b px-3 py-2">
+                    <Train className="mr-2 h-3.5 w-3.5 text-sky-500" />
+                    <span className="text-[11px] font-semibold">Nearby Subway Station</span>
+                  </div>
+                  <div className="divide-y text-[11px]">
+                    <div className="flex items-center justify-between px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                          Line 2
+                        </span>
+                        <span className="text-foreground">Hongik Univ.</span>
+                      </div>
+                      <button className="flex items-center gap-0.5 text-[10px] font-semibold text-teal-600">
+                        MORE
+                        <ChevronRight className="h-3 w-3" />
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center rounded-full bg-lime-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                          Line 6
+                        </span>
+                        <span className="text-foreground">Hapjeong</span>
+                      </div>
+                      <button className="flex items-center gap-0.5 text-[10px] font-semibold text-teal-600">
+                        MORE
+                        <ChevronRight className="h-3 w-3" />
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                          Line 6
+                        </span>
+                        <span className="text-foreground">Sangsu</span>
+                      </div>
+                      <button className="flex items-center gap-0.5 text-[10px] font-semibold text-teal-600">
+                        MORE
+                        <ChevronRight className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Hongdae Now */}
+              <div className="space-y-2">
+                <div className="text-[11px] font-semibold text-foreground">Hongdae Now</div>
+                <div className="grid grid-cols-3 gap-1">
+                  {Array.from({ length: 6 }).map((_, idx) => (
+                    <div key={idx} className="aspect-square overflow-hidden rounded-sm bg-muted">
+                      <img
+                        src={`https://picsum.photos/seed/hongdae-now-${idx}/120/120`}
+                        alt="Hongdae now"
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Recommendation summary */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-[11px] font-semibold text-foreground">
+                  <ThumbsUp className="h-3.5 w-3.5 text-amber-500" />
+                  <span>
+                    1,171 people also recommend visiting here!
+                  </span>
+                </div>
+                <div className="rounded-lg border bg-card px-3 py-2">
+                  <div className="text-[11px] text-muted-foreground">
+                    Very close to the subway, buses, and other public transit — very convenient!
+                  </div>
+                  <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground">
+                    <span>Visitor</span>
+                    <span>2025.11.19</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Travel Guide */}
+              <div className="space-y-2">
+                <div className="text-[11px] font-semibold text-foreground">Travel Guide</div>
+                <div className="space-y-2">
+                  {["Seoul Nightlife", "Unique Cafes in Hongdae"].map((title, idx) => (
+                    <div key={idx} className="flex overflow-hidden rounded-lg border bg-card">
+                      <div className="h-16 w-20 bg-muted">
+                        <img
+                          src={`https://picsum.photos/seed/hongdae-guide-${idx}/160/120`}
+                          alt={title}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      <div className="flex flex-1 flex-col justify-between px-3 py-2">
+                        <div className="text-[11px] font-semibold text-foreground line-clamp-2">{title}</div>
+                        <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
+                          <span>Seoul</span>
+                          <span>7.3k views</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           ) : detailPoi ? (
             <div className="p-3 space-y-3">
