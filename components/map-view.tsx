@@ -156,6 +156,7 @@ export function MapView({
   const [isRegionView, setIsRegionView] = useState(false)
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null)
   const [sidebarMode, setSidebarMode] = useState<"region" | "product">("product")
+  const [regionSheetExpanded, setRegionSheetExpanded] = useState(false)
 
   // responsive: detect mobile (<= md)
   const [isMobile, setIsMobile] = useState(false)
@@ -208,6 +209,7 @@ export function MapView({
   const sidebarRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
   const searchCircleRef = useRef<google.maps.Circle | null>(null)
+  const regionSheetDragStartYRef = useRef<number | null>(null)
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const setCardRef = useCallback((id: string) => (el: HTMLDivElement | null) => {
     cardRefs.current[id] = el
@@ -381,6 +383,65 @@ export function MapView({
     }
   }, [])
 
+  // Reset mobile region sheet when 지역 뷰가 해제될 때
+  useEffect(() => {
+    if (!isRegionView) {
+      setRegionSheetExpanded(false)
+      regionSheetDragStartYRef.current = null
+    }
+  }, [isRegionView])
+
+  // Mobile: simple drag/tap gesture to expand/collapse 지역 정보 바텀 시트
+  useEffect(() => {
+    if (!isMobile || !isRegionView) return
+
+    const handlePointerUp = (event: PointerEvent) => {
+      const startY = regionSheetDragStartYRef.current
+      if (startY == null) return
+
+      const endY = event.clientY
+      const delta = endY - startY
+      regionSheetDragStartYRef.current = null
+
+      if (Math.abs(delta) < 10) {
+        // 거의 움직이지 않았으면 토글
+        setRegionSheetExpanded((prev) => !prev)
+      } else if (delta < 0) {
+        // 위로 드래그
+        setRegionSheetExpanded(true)
+      } else {
+        // 아래로 드래그
+        setRegionSheetExpanded(false)
+      }
+    }
+
+    const handleTouchEnd = (event: TouchEvent) => {
+      const startY = regionSheetDragStartYRef.current
+      if (startY == null) return
+      const touch = event.changedTouches[0]
+      if (!touch) return
+      const endY = touch.clientY
+      const delta = endY - startY
+      regionSheetDragStartYRef.current = null
+
+      if (Math.abs(delta) < 10) {
+        setRegionSheetExpanded((prev) => !prev)
+      } else if (delta < 0) {
+        setRegionSheetExpanded(true)
+      } else {
+        setRegionSheetExpanded(false)
+      }
+    }
+
+    window.addEventListener("pointerup", handlePointerUp)
+    window.addEventListener("touchend", handleTouchEnd)
+    return () => {
+      window.removeEventListener("pointerup", handlePointerUp)
+      window.removeEventListener("touchend", handleTouchEnd)
+    }
+  }, [isMobile, isRegionView])
+
+
   // 선택된/상세 POI가 원 밖으로 나가면 해제
   useEffect(() => {
     if (selectedId && !visibleFiltered.some((p) => p.id === selectedId)) {
@@ -432,6 +493,13 @@ export function MapView({
     [initialCenter]
   )
 
+  const handleMapClick = useCallback(() => {
+    if (!isMobile) return
+    // 모바일에서 빈 지도 영역을 클릭하면 선택 상태 및 상세를 모두 해제해 바텀시트를 숨긴다.
+    setSelectedId(null)
+    setDetailId(null)
+  }, [isMobile])
+
   // 행정구역(지역 뷰) 폴리곤 모양 - 검색 중심 기준으로 간단한 다각형 생성
   const regionPolygon = useMemo<google.maps.LatLngLiteral[]>(() => {
     const { lat, lng } = searchCenter
@@ -449,9 +517,16 @@ export function MapView({
 
   const effectiveSidebarMode: "region" | "product" = !isRegionView ? "product" : sidebarMode
 
+  const hasMobilePoiSheet = isMobile && ((selectedForCard && !detailPoi) || !!detailPoi)
+
+  // 모바일 지역 뷰일 때 지도 높이/오버레이 위치 보정을 위한 값
+  const REGION_SHEET_COLLAPSED_HEIGHT = 80
+  const mapBottomOffset = isMobile && isRegionView ? REGION_SHEET_COLLAPSED_HEIGHT : 0
+  const overlayBottomOffset = mapBottomOffset
+
   return (
     <div className="relative bg-map-bg rounded-lg border overflow-hidden h-full">
-      <div className="absolute inset-0">
+      <div className="absolute inset-x-0 top-0" style={{ bottom: mapBottomOffset }}>
         {!isLoaded ? (
           <div className="w-full h-full grid place-items-center text-sm text-muted-foreground">Google Maps를 불러오는 중...</div>
         ) : !process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
@@ -471,7 +546,13 @@ export function MapView({
             </div>
           </div>
         ) : (
-          <GoogleMap onLoad={onMapLoad} onIdle={onMapIdle} mapContainerStyle={{ width: "100%", height: "100%" }} options={mapOptions}>
+          <GoogleMap
+            onLoad={onMapLoad}
+            onIdle={onMapIdle}
+            onClick={handleMapClick}
+            mapContainerStyle={{ width: "100%", height: "100%" }}
+            options={mapOptions}
+          >
             {isRegionView && (
               <Polygon
                 paths={regionPolygon}
@@ -527,7 +608,10 @@ export function MapView({
         </Button>
       </div>
 
-      <div className="absolute bottom-4 left-1/2 md:left-[calc(50%+10rem)] transform -translate-x-1/2">
+      <div
+        className="absolute left-1/2 md:left-[calc(50%+10rem)] transform -translate-x-1/2"
+        style={{ bottom: overlayBottomOffset + 16 }}
+      >
         <div className="flex items-center gap-2 rounded-full bg-white px-3 py-2 border shadow-sm">
           <span className="text-xs font-medium text-black">지역 뷰 보기</span>
           <button
@@ -548,7 +632,10 @@ export function MapView({
         </div>
       </div>
 
-      <div className="absolute bottom-4 right-4 mb-12">
+      <div
+        className="absolute right-4 mb-12"
+        style={{ bottom: overlayBottomOffset + 16 }}
+      >
         <Button variant="secondary" size="sm" className="bg-white hover:bg-gray-50 border shadow-sm">
           <MapPin className="w-4 h-4" />
           <span className="ml-1 text-xs">내 위치</span>
@@ -870,15 +957,206 @@ export function MapView({
         </div>
       )}
 
+      {/* Mobile region info bottom sheet (inside map card) */}
+      {isMobile && isRegionView && !hasMobilePoiSheet && (
+        <div
+          className="md:hidden absolute left-0 right-0 bottom-0 z-30"
+          style={{
+            height: regionSheetExpanded ? "100%" : REGION_SHEET_COLLAPSED_HEIGHT,
+          }}
+        >
+          <div className="mx-auto w-full max-w-md rounded-t-2xl border-t bg-card/95 backdrop-blur h-full flex flex-col">
+            <div
+              className="px-3 pt-2 pb-2 cursor-pointer"
+              onClick={() => setRegionSheetExpanded((prev) => !prev)}
+              onPointerDown={(event: any) => {
+                if (typeof event.clientY === "number") {
+                  regionSheetDragStartYRef.current = event.clientY
+                }
+              }}
+              onTouchStart={(event: any) => {
+                const touch = event.touches?.[0]
+                if (touch && typeof touch.clientY === "number") {
+                  regionSheetDragStartYRef.current = touch.clientY
+                }
+              }}
+            >
+              <div className="w-10 h-1.5 bg-muted-foreground/40 rounded-full mx-auto mb-1" />
+              <div className="text-[11px] font-semibold text-center">Things To Do in Hongdae</div>
+            </div>
+            {regionSheetExpanded && (
+              <div className="flex-1 overflow-y-auto px-3 pb-3 text-xs space-y-4">
+                {/* Header */}
+                <div className="space-y-2">
+                  <div>
+                    <div className="text-[15px] font-semibold leading-snug">Things To Do in Hongdae</div>
+                    <div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <Star className="h-3.5 w-3.5 text-emerald-500" />
+                      <span className="font-semibold text-foreground">4.9</span>
+                      <span>8,121 Reviews</span>
+                      <span className="ml-1 inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-500">
+                        POPULAR
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between rounded-full border px-3 py-2 text-[11px]">
+                    <span className="truncate text-muted-foreground">I&apos;d love to visit this place too!</span>
+                    <button className="ml-2 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium">
+                      <Heart className="h-3 w-3 text-rose-500" />
+                      <span>3,211</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Regional Description */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-foreground">Regional Description</span>
+                    <button className="text-[10px] font-semibold text-teal-600 flex items-center gap-0.5">
+                      MORE
+                      <ChevronRight className="h-3 w-3" />
+                    </button>
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">
+                    Hongdae, the area near Hongik University, is famous among young people for its unique cultural
+                    atmosphere. The neighborhood is packed with popular shops, cafes, restaurants, clubs, and venues for
+                    live busking performances.
+                  </p>
+                </div>
+
+                {/* Location blocks */}
+                <div className="space-y-2">
+                  <div className="rounded-lg border bg-card">
+                    <div className="flex items-center border-b px-3 py-2">
+                      <MapPin className="mr-2 h-3.5 w-3.5 text-emerald-500" />
+                      <span className="text-[11px] font-semibold">Location</span>
+                    </div>
+                    <div className="px-3 py-2 text-[11px] text-muted-foreground">Yanghwa-ro, Mapo-gu, Seoul</div>
+                  </div>
+
+                  <div className="rounded-lg border bg-card">
+                    <div className="flex items-center border-b px-3 py-2">
+                      <Train className="mr-2 h-3.5 w-3.5 text-sky-500" />
+                      <span className="text-[11px] font-semibold">Nearby Subway Station</span>
+                    </div>
+                    <div className="divide-y text-[11px]">
+                      <div className="flex items-center justify-between px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                            Line 2
+                          </span>
+                          <span className="text-foreground">Hongik Univ.</span>
+                        </div>
+                        <button className="flex items-center gap-0.5 text-[10px] font-semibold text-teal-600">
+                          MORE
+                          <ChevronRight className="h-3 w-3" />
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center rounded-full bg-lime-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                            Line 6
+                          </span>
+                          <span className="text-foreground">Hapjeong</span>
+                        </div>
+                        <button className="flex items-center gap-0.5 text-[10px] font-semibold text-teal-600">
+                          MORE
+                          <ChevronRight className="h-3 w-3" />
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                            Line 6
+                          </span>
+                          <span className="text-foreground">Sangsu</span>
+                        </div>
+                        <button className="flex items-center gap-0.5 text-[10px] font-semibold text-teal-600">
+                          MORE
+                          <ChevronRight className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Hongdae Now */}
+                <div className="space-y-2">
+                  <div className="text-[11px] font-semibold text-foreground">Hongdae Now</div>
+                  <div className="grid grid-cols-3 gap-1">
+                    {Array.from({ length: 6 }).map((_, idx) => (
+                      <div key={idx} className="aspect-square overflow-hidden rounded-sm bg-muted">
+                        <img
+                          src={`https://picsum.photos/seed/hongdae-now-${idx}/120/120`}
+                          alt="Hongdae now"
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Recommendation summary */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-[11px] font-semibold text-foreground">
+                    <ThumbsUp className="h-3.5 w-3.5 text-amber-500" />
+                    <span>1,171 people also recommend visiting here!</span>
+                  </div>
+                  <div className="rounded-lg border bg-card px-3 py-2">
+                    <div className="text-[11px] text-muted-foreground">
+                      Very close to the subway, buses, and other public transit — very convenient!
+                    </div>
+                    <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground">
+                      <span>Visitor</span>
+                      <span>2025.11.19</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Travel Guide */}
+                <div className="space-y-2 pb-2">
+                  <div className="text-[11px] font-semibold text-foreground">Travel Guide</div>
+                  <div className="space-y-2">
+                    {["Seoul Nightlife", "Unique Cafes in Hongdae"].map((title, idx) => (
+                      <div key={idx} className="flex overflow-hidden rounded-lg border bg-card">
+                        <div className="h-16 w-20 bg-muted">
+                          <img
+                            src={`https://picsum.photos/seed/hongdae-guide-mobile-${idx}/160/120`}
+                            alt={title}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                        <div className="flex flex-1 flex-col justify-between px-3 py-2">
+                          <div className="text-[11px] font-semibold text-foreground line-clamp-2">{title}</div>
+                          <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
+                            <span>Seoul</span>
+                            <span>7.3k views</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Zoom level indicator */}
-      <div className="absolute bottom-4 right-4 bg-card border rounded px-2 py-1">
+      <div
+        className="absolute right-4 bg-card border rounded px-2 py-1"
+        style={{ bottom: overlayBottomOffset + 16 }}
+      >
         <span className="text-xs text-muted-foreground">Zoom: {zoom}</span>
       </div>
 
-      {/* Map attribution */}
-      <div className="absolute bottom-4 left-4 bg-card border rounded px-2 py-1">
-        <span className="text-xs text-muted-foreground">© TravelKorea Maps</span>
-      </div>
+      {/* Map attribution (desktop only) */}
+      {!isMobile && (
+        <div className="absolute bottom-4 left-4 bg-card border rounded px-2 py-1">
+          <span className="text-xs text-muted-foreground">© TravelKorea Maps</span>
+        </div>
+      )}
     </div>
   )
 }
