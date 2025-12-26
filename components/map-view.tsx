@@ -261,6 +261,23 @@ export function MapView({
     },
     [handleSelect]
   )
+
+  const handleMarkerClick = useCallback(
+    (poi: Poi) => {
+      // 데스크탑 + 지역 뷰 + 좌측 패널이 '지역 정보'일 때
+      // 마커 클릭 시 '상품 정보' 탭으로 전환 후 해당 카드로 스크롤
+      if (!isMobile && isRegionView && sidebarMode === "region") {
+        setSidebarMode("product")
+      }
+
+      if (isMobile && detailEligible.has(poi.type)) {
+        openDetail(poi)
+      } else {
+        handleSelect(poi.id)
+      }
+    },
+    [handleSelect, isMobile, isRegionView, openDetail, sidebarMode]
+  )
   const closeDetail = useCallback(() => setDetailId(null), [])
 
   const detailPoi = useMemo(() => filtered.find((p) => p.id === detailId) ?? null, [filtered, detailId])
@@ -574,13 +591,7 @@ export function MapView({
                 <OverlayView key={poi.id} position={{ lat: poi.lat, lng: poi.lng }} mapPaneName="overlayMouseTarget">
                   <div
                     className={`-translate-x-1/2 -translate-y-1/2 cursor-pointer transform-gpu ${selected ? "scale-110" : "scale-100"}`}
-                    onClick={() => {
-                      if (isMobile && detailEligible.has(poi.type)) {
-                        openDetail(poi)
-                      } else {
-                        handleSelect(poi.id)
-                      }
-                    }}
+                    onClick={() => handleMarkerClick(poi)}
                   >
                     <div
                       className={`flex items-center justify-center rounded-full text-white shadow transition-all duration-150 ${
