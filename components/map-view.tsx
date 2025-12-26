@@ -632,7 +632,13 @@ export function MapView({
             className={`relative inline-flex h-4 w-7 items-center rounded-full border transition-colors ${
               isRegionView ? "bg-teal-500 border-teal-600" : "bg-gray-200 border-gray-300"
             }`}
-            onClick={() => setIsRegionView((prev) => !prev)}
+            onClick={() =>
+              setIsRegionView((prev) => {
+                const next = !prev
+                if (next) setSidebarMode("region")
+                return next
+              })
+            }
           >
             <span
               className={`inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform ${
